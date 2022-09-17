@@ -1,0 +1,55 @@
+services:
+  minio:
+    image: minio/minio:latest
+    env_file: ["${ENV_DIR:-swarm-envs}/swarm/minio-stack/minio.env"]
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        # Docker (20.10.3) on Synology bug where env vars from env_file 
+        # not set on container.
+        # constraints: [node.platform.arch != aarch64]
+        constraints:
+          - node.platform.arch != aarch64
+          - node.hostname != ${NAS_HOSTNAME}
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=traefik-net
+        - traefik.http.routers.minio.entrypoints=https
+        - traefik.http.routers.minio.rule=Host(`minio.cynicsoft.net`)
+        - traefik.http.routers.minio.middlewares=internal-whitelist
+        - traefik.http.routers.minio.service=minio
+        - traefik.http.services.minio.loadbalancer.server.port=9000
+        - traefik.http.routers.minio-console.entrypoints=https
+        - traefik.http.routers.minio-console.rule=Host(`minio-console.cynicsoft.net`)
+        - traefik.http.routers.minio-console.middlewares=internal-whitelist
+        - traefik.http.routers.minio-console.service=minio-console
+        - traefik.http.services.minio-console.loadbalancer.server.port=9001
+    command:
+      ['server', '/data', '--address', '0.0.0.0:9000', '--console-address', '0.0.0.0:9001']
+    volumes:
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      # - ${CONFDIR}/database-stack/config.env:/config.env
+      - minio_data:/root/.minio
+      - data_backup:/data
+    networks:
+      - traefik-net
+    # environment:
+    #   - MINIO_CONFIG_ENV_FILE=/config.env
+networks:
+  traefik-net:
+    external: true
+
+volumes:
+  minio_data:
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_HOST},nolock,noresvport,vers=2
+      device: :${DATADIR}/minio-stack/minio/config
+  data_backup:
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_HOST},nolock,noresvport,vers=2
+      device: :/volumeUSB1/usbshare/minio
