@@ -51,6 +51,8 @@ steps:
         path: /var/run/docker.sock
     commands:
       - /docker-stack-wait.sh $STACK_NAME
+    when:
+      event: [promote]
 
 volumes:
   - name: docker.sock
