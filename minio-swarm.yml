@@ -26,6 +26,11 @@ services:
         - traefik.http.routers.minio-console.middlewares=internal-whitelist
         - traefik.http.routers.minio-console.service=minio-console
         - traefik.http.services.minio-console.loadbalancer.server.port=9001
+        - homepage.name=Minio 
+        - homepage.group=Network
+        - homepage.icon=https://raw.githubusercontent.com/modem7/MiscAssets/master/Icons/Dashboard-Icons/minio.png
+        - homepage.href=https://minio-console.cynicsoft.net/login
+        - homepage.description=Object storage service
     command:
       ['server', '/data', '--address', '0.0.0.0:9000', '--console-address', '0.0.0.0:9001']
     volumes:
